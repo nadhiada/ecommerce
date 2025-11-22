@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopEase — Belanja Mudah & Cepat</title>
+  <style>
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:#f8f9fc; }
+    .navbar { background:#fff; padding:18px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,.06); position:sticky; top:0; z-index:20; }
+    .nav-logo { font-size:1.7rem; font-weight:bold; color:#4f46e5; }
+    .nav-links a { margin-left:25px; text-decoration:none; font-size:1.1rem; color:#444; }
+    .nav-links .active { color:#4f46e5; font-weight:bold; }
+
+    .hero { display:flex; justify-content:space-between; align-items:center; padding:80px 40px; background:linear-gradient(120deg,#4f46e5,#6d5af9); color:white; }
+    .hero-content { max-width:550px; }
+    .hero-content h1 { font-size:3rem; margin-bottom:10px; }
+    .hero-content p { font-size:1.1rem; opacity:0.9; }
+    .btn.primary { display:inline-block; margin-top:20px; padding:12px 25px; background:white; color:#4f46e5; font-weight:bold; border-radius:8px; text-decoration:none; transition:.3s; }
+    .btn.primary:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(0,0,0,.15); }
+    .hero-img { font-size:12rem; animation:bounce 2s infinite ease-in-out; }
+
+    .categories { text-align:center; padding:50px 20px; }
+    .category-grid { margin-top:25px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:900px; margin-inline:auto; }
+    .category-card { background:white; padding:25px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.08); cursor:pointer; transition:.3s; }
+    .category-card:hover { transform:translateY(-5px); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+
+    .featured { padding:50px 30px; }
+    .product-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:25px; max-width:1200px; margin:0 auto; }
+    .product-card { background:white; padding:20px; border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.08); text-align:center; transition:.3s; }
+    .product-card:hover { transform:translateY(-6px); box-shadow:0 10px 25px rgba(0,0,0,.15); }
+    .product-card img { width:160px; height:160px; object-fit:cover; border-radius:12px; background:#eee; }
+    .product-card h3 { margin:15px 0 10px; }
+    .product-price { font-size:1.3rem; font-weight:bold; color:#4f46e5; }
+
+    footer { background:#1f2937; color:#d1d5db; padding:40px 30px; margin-top:40px; text-align:center; }
+
+    @keyframes bounce { 50% { transform:translateY(-15px); } }
+  </style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="nav-logo">🛍️ ShopEase</div>
+  <nav class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="login.html">Login</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-content">
+    <h1>Belanja Dengan Mudah dan Cepat</h1>
+    <p>Temukan berbagai produk terbaik dengan harga terjangkau.</p>
+    <a href="login.html" class="btn primary">Shop Now</a>
+  </div>
+  <div class="hero-img">🛒</div>
+</section>
+
+<section class="featured">
+  <h2 style="text-align:center;">Produk Unggulan</h2>
+  <div class="product-grid" id="featuredList">
+    <div style="text-align:center;width:100%;color:#777;">Memuat produk...</div>
+  </div>
+</section>
+
+<footer>
+  <h3>ShopEase</h3>
+  <p>Belanja mudah, aman, dan terpercaya.</p>
+  <p style="opacity:.7;margin-top:10px;">© 2025 ShopEase.</p>
+</footer>
+
+<script>
+function formatRupiah(num) {
+  return "Rp " + Number(num || 0).toLocaleString("id-ID");
+}
+
+function getEmojiFallback(name = "") {
+  name = name.toLowerCase();
+  if (name.includes("keyboard")) return "⌨️";
+  if (name.includes("mouse")) return "🖱️";
+  if (name.includes("monitor")) return "🖥️";
+  if (name.includes("headset")) return "🎧";
+  return "🛍️";
+}
+
+async function loadFeatured() {
+  const box = document.getElementById("featuredList");
+
+  try {
+    const res = await fetch("http://localhost:3001/api/products");
+    const list = await res.json();
+
+    if (!list.length) {
+      box.innerHTML = "<div style='text-align:center;width:100%;color:#777;'>Belum ada produk</div>";
+      return;
+    }
+
+    box.innerHTML = list.map(p => `
+      <div class="product-card">
+        ${
+          p.IMAGE_URL
+          ? `<img src="http://localhost:3001${p.IMAGE_URL}" alt="${p.NAME}">`
+          : `<div style="font-size:5rem;">${getEmojiFallback(p.NAME)}</div>`
+        }
+        <h3>${p.NAME}</h3>
+        <p class="product-price">${formatRupiah(p.PRICE)}</p>
+        <p style="font-size:.9rem;color:#777;">Stok: ${p.STOCK}</p>
+      </div>
+    `).join("");
+
+  } catch (e) {
+    console.log(e);
+    box.innerHTML = "<div style='text-align:center;width:100%;color:#777;'>Gagal memuat produk</div>";
+  }
+}
+
+loadFeatured();
+</script>
+
+</body>
+</html>

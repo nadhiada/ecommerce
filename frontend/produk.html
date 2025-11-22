@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopEase Admin - Products</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #f3f4f7;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .navbar {
+      background: white;
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, .06);
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+
+    .nav-logo {
+      font-size: 1.7rem;
+      font-weight: bold;
+      color: #4f46e5;
+    }
+
+    .nav-links a {
+      margin-left: 25px;
+      font-size: 1.05rem;
+      color: #444;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: #4f46e5;
+    }
+
+    .main {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.09);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+
+    th {
+      background: #eef0ff;
+      padding: 12px;
+      text-align: left;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .btn-add { background: #4f46e5; color: white; }
+    .btn-edit { background: #ffc107; color: black; }
+    .btn-delete { background: #dc3545; color: white; }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      width: 380px;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0 14px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    #imagePreview {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #eee;
+      display: none;
+      margin-bottom: 15px;
+    }
+
+    /* ======= TOAST NOTIFICATION ======= */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4f46e5;
+      color: white;
+      padding: 14px 22px;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.2);
+      opacity: 0;
+      transition: opacity 0.4s, transform 0.4s;
+      transform: translateY(-20px);
+      z-index: 1100;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="nav-logo">🛍️ ShopEase Admin</div>
+    <nav class="nav-links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="produk.html" class="active" style="color:#4f46e5;font-weight:bold;">Products</a>
+      <a href="laporan.html">Laporan</a>
+      <a href="customer-summary.html">Customer Analytics</a>
+      <a href="performance.html">Performance</a>
+      <a href="index.html" id="logoutBtn">Logout</a>
+    </nav>
+  </header>
+
+  <main class="main">
+    <h1>Product Management</h1>
+    <button class="btn btn-add" onclick="openAddModal()">+ Add Product</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Gambar</th>
+          <th>Nama Produk</th>
+          <th>Stok</th>
+          <th>Harga</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+
+      <tbody id="productBody"></tbody>
+    </table>
+  </main>
+
+  <!-- MODAL FORM -->
+  <div class="modal" id="modalForm">
+    <div class="modal-content">
+      <h2 id="modalTitle">Tambah Produk</h2>
+
+      <input type="hidden" id="productId">
+
+      <label>Nama Produk</label>
+      <input type="text" id="productName">
+
+      <label>Stok</label>
+      <input type="number" id="productStock">
+
+      <label>Harga</label>
+      <input type="number" id="productPrice">
+
+      <label>Gambar Produk</label>
+      <input type="file" id="productImage" accept="image/*" onchange="previewImage()">
+
+      <img id="imagePreview">
+
+      <button class="btn btn-add" onclick="saveProduct()">Simpan</button>
+      <button class="btn btn-delete" onclick="closeModal()">Batal</button>
+    </div>
+  </div>
+
+  <!-- 🔔 TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // LOGIN PROTECT
+    if (!localStorage.getItem("admin")) {
+      window.location.href = "login.html";
+    }
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("admin");
+      window.location.href = "login.html";
+    };
+
+    // TOAST
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // PREVIEW GAMBAR
+    function previewImage() {
+      const file = document.getElementById("productImage").files[0];
+      const prev = document.getElementById("imagePreview");
+      if (file) {
+        prev.src = URL.createObjectURL(file);
+        prev.style.display = "block";
+      }
+    }
+
+    let lastData = [];
+
+    // LOAD PRODUCTS + DETECT STOCK CHANGE
+    async function loadProducts() {
+      const res = await fetch("http://localhost:3001/api/products");
+      const data = await res.json();
+
+      const tbody = document.getElementById("productBody");
+      tbody.innerHTML = "";
+
+      let stockChanged = false;
+
+      data.forEach((p, index) => {
+        const oldStock = lastData[index]?.STOCK ?? p.STOCK;
+        const changed = oldStock !== p.STOCK;
+
+        if (changed) stockChanged = true;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.PRODUCT_ID}</td>
+
+          <td><img src="http://localhost:3001${p.IMAGE_URL}"
+            style="width:60px;height:60px;border-radius:8px;object-fit:cover;background:#eee"></td>
+
+          <td>${p.NAME}</td>
+
+          <td style="color:${changed ? '#d64545' : '#000'};">
+            ${p.STOCK} ${changed ? '⚡' : ''}
+          </td>
+
+          <td>Rp ${p.PRICE.toLocaleString("id-ID")}</td>
+
+          <td>
+            <button class="btn btn-edit"
+              onclick="editProduct('${p.PRODUCT_ID}','${p.NAME}',${p.STOCK},${p.PRICE},'${p.IMAGE_URL}')">Edit</button>
+
+            <button class="btn btn-delete" onclick="deleteProduct('${p.PRODUCT_ID}')">Delete</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      if (stockChanged) {
+        showToast("⚡ Stok diperbarui otomatis dari database (trigger aktif)");
+      }
+
+      lastData = data;
+    }
+
+    loadProducts();
+    setInterval(loadProducts, 10000);
+
+    // ADD MODAL
+    function openAddModal() {
+      document.getElementById("modalTitle").textContent = "Tambah Produk";
+      document.getElementById("productId").value = "";
+      document.getElementById("productName").value = "";
+      document.getElementById("productStock").value = "";
+      document.getElementById("productPrice").value = "";
+      document.getElementById("productImage").value = "";
+      document.getElementById("imagePreview").style.display = "none";
+
+      document.getElementById("modalForm").style.display = "flex";
+    }
+
+    // EDIT MODAL
+    function editProduct(id, name, stock, price, imageUrl) {
+      document.getElementById("modalTitle").textContent = "Edit Produk";
+      document.getElementById("productId").value = id;
+      document.getElementById("productName").value = name;
+      document.getElementById("productStock").value = stock;
+      document.getElementById("productPrice").value = price;
+
+      const prev = document.getElementById("imagePreview");
+      prev.src = "http://localhost:3001" + imageUrl;
+      prev.style.display = "block";
+
+      document.getElementById("modalForm").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modalForm").style.display = "none";
+    }
+
+    // SAVE PRODUCT
+    async function saveProduct() {
+      const id = document.getElementById("productId").value;
+
+      const formData = new FormData();
+      formData.append("NAME", document.getElementById("productName").value);
+      formData.append("STOCK", document.getElementById("productStock").value);
+      formData.append("PRICE", document.getElementById("productPrice").value);
+
+      const file = document.getElementById("productImage").files[0];
+      if (file) formData.append("image", file);
+
+      const url = id === ""
+        ? "http://localhost:3001/api/products"
+        : "http://localhost:3001/api/products/" + id;
+
+      const method = id === "" ? "POST" : "PUT";
+
+      await fetch(url, { method, body: formData });
+
+      closeModal();
+      loadProducts();
+
+      showToast(id === "" ? "Produk berhasil ditambahkan!" : "Produk berhasil diperbarui!");
+    }
+
+    // DELETE
+    async function deleteProduct(id) {
+      if (!confirm("Hapus produk ini?")) return;
+
+      await fetch("http://localhost:3001/api/products/" + id, { method: "DELETE" });
+
+      loadProducts();
+
+      showToast("Produk berhasil dihapus!");
+    }
+  </script>
+
+</body>
+</html>

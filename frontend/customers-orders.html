@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta viewport="width=device-width, initial-scale=1.0" />
+  <title>ShopEase — Pesanan Saya</title>
+
+  <style>
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:#f3f4f6; }
+    .navbar {
+      background:#fff; padding:18px 40px; display:flex;
+      justify-content:space-between; align-items:center;
+      box-shadow:0 3px 10px rgba(0,0,0,.06);
+      position:sticky; top:0; z-index:20;
+    }
+    .nav-logo { font-size:1.7rem; font-weight:bold; color:#4f46e5; }
+    .nav-links a { margin-left:25px; text-decoration:none; font-size:1.1rem; color:#444; }
+    .nav-links .active { color:#4f46e5; font-weight:bold; }
+    .container { max-width:1000px; margin:40px auto; background:white;
+      padding:25px 30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,.08); }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:12px; border-bottom:1px solid #e5e7eb; text-align:left; }
+    th { background:#f9fafb; }
+    .badge { padding:5px 10px; border-radius:6px;
+      font-size:.85rem; font-weight:bold; color:white; }
+    .badge.pending { background:#f59e0b; }
+    .badge.completed { background:#10b981; }
+    .badge.cancelled { background:#ef4444; }
+    .details {
+      margin-top:10px; padding:15px; background:#f9fafb;
+      border-radius:10px; display:none;
+    }
+    .toggle-btn, .cancel-btn {
+      background:#4f46e5; color:white; padding:6px 12px;
+      border-radius:6px; border:none; cursor:pointer;
+      font-size:.9rem;
+    }
+    .cancel-btn { background:#ef4444; margin-left:8px; }
+    .product-img {
+      width:60px; height:60px; object-fit:cover;
+      border-radius:8px; background:#ddd;
+    }
+    .filter-box { margin-top:20px; display:flex; gap:12px; align-items:center; }
+    select { padding:8px 12px; border-radius:6px; border:1px solid #bbb; }
+  </style>
+</head>
+
+<body>
+
+<header class="navbar">
+  <div class="nav-logo">🛍️ ShopEase</div>
+  <nav class="nav-links">
+    <a href="customer-dashboard.html">Home</a>
+    <a href="customers-orders.html" class="active">Pesanan Saya</a>
+    <a href="index.html" onclick="logout()">Logout</a>
+  </nav>
+</header>
+
+<div class="container">
+  <h2>Pesanan Saya</h2>
+
+  <div class="filter-box">
+    <span>Filter Status:</span>
+    <select id="statusFilter" onchange="applyFilter()">
+      <option value="ALL">ALL</option>
+      <option value="Pending">Pending</option>
+      <option value="Completed">Completed</option>
+      <option value="Cancelled">Cancelled</option>
+    </select>
+  </div>
+
+  <div id="orderList" style="margin-top:20px;">Memuat pesanan...</div>
+</div>
+
+<script>
+/* =============================
+   CEK LOGIN CUSTOMER + NORMALISASI
+============================= */
+let customer = JSON.parse(localStorage.getItem("customer"));
+
+if (customer && customer.CUSTOMER_ID) {
+  customer = {
+    customer_id: customer.CUSTOMER_ID,
+    name: customer.NAME,
+    email: customer.EMAIL,
+    phone: customer.PHONE,
+    created_at: customer.CREATED_AT
+  };
+  localStorage.setItem("customer", JSON.stringify(customer));
+}
+
+if (!customer) {
+  document.getElementById("orderList").innerHTML =
+    "<div style='color:red;'>Session habis atau belum login. Silakan login kembali.</div>";
+
+  setTimeout(() => {
+    window.location.href = "index.html";
+  }, 1500);
+
+  throw new Error("Not logged in");
+}
+
+const CUSTOMER_ID = customer.customer_id;
+let ALL_ORDERS = [];
+
+/* =============================
+   FORMAT RUPIAH
+============================= */
+function formatRupiah(num) {
+  return "Rp " + Number(num || 0).toLocaleString("id-ID");
+}
+
+/* =============================
+   LOAD ORDERS
+============================= */
+async function loadOrders() {
+  const box = document.getElementById("orderList");
+  box.innerHTML = "Memuat pesanan...";
+
+  try {
+    const res = await fetch(`http://localhost:3001/api/orders/customer/${CUSTOMER_ID}`);
+    const json = await res.json();
+
+    ALL_ORDERS = json.orders || [];
+    renderOrders(ALL_ORDERS);
+
+  } catch (err) {
+    console.log(err);
+    box.innerHTML = "<div style='color:red;'>Gagal memuat pesanan.</div>";
+  }
+}
+
+/* =============================
+   RENDER ORDERS + PAYMENT METHOD
+============================= */
+function renderOrders(data) {
+  const box = document.getElementById("orderList");
+
+  if (!data.length) {
+    box.innerHTML = "<div style='color:#777;'>Tidak ada pesanan.</div>";
+    return;
+  }
+
+  box.innerHTML = data.map(order => `
+    <div class="order-card" style="margin-bottom:25px;">
+
+      <table>
+        <tr>
+          <th>Order ID</th>
+          <th>Tanggal</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+
+        <tr>
+          <td>${order.order_id}</td>
+          <td>${new Date(order.order_date).toLocaleDateString("id-ID")}</td>
+          <td>${formatRupiah(order.items.reduce((a,b)=>a+b.subtotal,0))}</td>
+
+          <td>
+            <span class="badge ${order.status.toLowerCase()}">${order.status}</span>
+
+            <!-- 🔥 Tambahan metode pembayaran -->
+            <br>
+            <span style="font-size: 0.85rem; color:#555;">
+              Metode: <b>${order.payment_method || "COD"}</b>
+            </span>
+          </td>
+
+          <td>
+            <button class="toggle-btn" onclick="toggleDetails('${order.order_id}')">Detail</button>
+            ${order.status === "Pending" ? 
+              `<button class="cancel-btn" onclick="cancelOrder('${order.order_id}')">Batalkan</button>` 
+            : ""}
+          </td>
+        </tr>
+      </table>
+
+      <div id="details-${order.order_id}" class="details">
+        <h4>Detail Produk:</h4>
+
+        <table>
+          <tr>
+            <th>Foto</th>
+            <th>Produk</th>
+            <th>Jumlah</th>
+            <th>Harga</th>
+            <th>Subtotal</th>
+          </tr>
+
+          ${order.items.map(it => `
+            <tr>
+              <td><img src="http://localhost:3001${it.product_image}" class="product-img"></td>
+              <td>${it.product_name}</td>
+              <td>${it.quantity}</td>
+              <td>${formatRupiah(it.price)}</td>
+              <td>${formatRupiah(it.subtotal)}</td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+
+    </div>
+  `).join("");
+}
+
+/* =============================
+   TOGGLE
+============================= */
+function toggleDetails(id) {
+  const box = document.getElementById("details-" + id);
+  box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+/* =============================
+   CANCEL ORDER
+============================= */
+async function cancelOrder(orderId) {
+  if (!confirm("Yakin ingin membatalkan pesanan?")) return;
+
+  const res = await fetch(`http://localhost:3001/api/orders/cancel/${orderId}`, { method:"PUT" });
+  const result = await res.json();
+
+  if (result.success) {
+    alert("Pesanan berhasil dibatalkan!");
+    loadOrders();
+  } else {
+    alert("Gagal membatalkan pesanan.");
+  }
+}
+
+/* =============================
+   FILTER
+============================= */
+function applyFilter() {
+  const val = document.getElementById("statusFilter").value;
+  if (val === "ALL") renderOrders(ALL_ORDERS);
+  else renderOrders(ALL_ORDERS.filter(o => o.status.toLowerCase() === val.toLowerCase())
+);
+}
+
+/* =============================
+   LOGOUT
+============================= */
+function logout() {
+  localStorage.removeItem("customer");
+}
+
+/* START */
+loadOrders();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ShopEase - Performance & Index Manager</title>
+    <style>
+        body { margin:0; background:#f3f4f7; font-family:"Segoe UI",sans-serif; }
+        .navbar { background:#fff; padding:18px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,.06); position:sticky; top:0; z-index:10; }
+        .nav-logo { font-size:1.7rem; font-weight:700; color:#4f46e5; }
+        .nav-links a { margin-left:20px; text-decoration:none; color:#444; font-size:1.05rem; }
+        .main { max-width:1400px; margin:40px auto; padding:0 24px; }
+        .page-header h1 { font-size:2.2rem; margin:0; }
+        .page-header p { color:#666; margin-top:6px; }
+
+        .card { 
+            background:#fff; 
+            padding:25px; 
+            border-radius:12px; 
+            box-shadow:0 6px 16px rgba(0,0,0,.06);
+            margin-bottom:25px;
+        }
+        
+        .btn { 
+            padding:8px 16px; 
+            border:none; 
+            border-radius:6px; 
+            cursor:pointer; 
+            font-weight:500;
+            font-size:0.85rem;
+            margin: 5px;
+        }
+        .btn-primary { background:#4f46e5; color:#fff; }
+        .btn-success { background:#10b981; color:white; }
+        .btn-warning { background:#f59e0b; color:white; }
+        
+        .index-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .index-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .index-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-inactive { background: #fef3c7; color: #92400e; }
+        
+        .query-result {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .performance-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f0f9ff;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .index-grid, .performance-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-logo">🛍️ ShopEase Admin</div>
+        <nav class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="produk.html">Products</a>
+            <a href="laporan.html">Laporan</a>
+            <a href="customer-summary.html">Customer Analytics</a>
+            <a href="performance.html" style="color:#4f46e5;font-weight:bold;">Performance</a>
+            <a href="index.html" id="logoutBtn">Logout</a>
+        </nav>
+    </header>
+
+    <main class="main">
+        <section class="page-header">
+            <h1>⚡ Performance & Index Manager</h1>
+            <p>Kelola database indexes dan analisis performance query untuk optimasi kecepatan</p>
+        </section>
+
+        <!-- Performance Statistics -->
+        <section class="card">
+            <h2>📊 Database Performance Overview</h2>
+            <div class="performance-stats" id="performanceStats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalIndexes">0</div>
+                    <div class="stat-label">Total Indexes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="activeIndexes">0</div>
+                    <div class="stat-label">Active Indexes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tableCount">0</div>
+                    <div class="stat-label">Tables</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="querySpeed">0ms</div>
+                    <div class="stat-label">Avg Query Speed</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="loadPerformanceStats()">🔄 Refresh Stats</button>
+        </section>
+
+        <!-- Index Management -->
+        <section class="card">
+            <h2>🔍 Database Indexes</h2>
+            <p>Indexes untuk mempercepat pencarian produk dan query lainnya</p>
+            
+            <div class="index-grid" id="indexesGrid">
+                <div class="loading">Loading indexes...</div>
+            </div>
+        </section>
+
+        <!-- Query Performance Test -->
+        <section class="card">
+            <h2>⚡ Query Performance Test</h2>
+            <p>Test kecepatan query dengan dan tanpa index</p>
+            
+            <div style="margin: 15px 0;">
+                <button class="btn btn-primary" onclick="testProductSearch()">🔎 Test Product Search</button>
+                <button class="btn btn-warning" onclick="testCustomerQuery()">👥 Test Customer Query</button>
+                <button class="btn btn-success" onclick="testOrderQuery()">📦 Test Order Query</button>
+            </div>
+            
+            <div id="queryResults">
+                <div class="query-result">
+                    Click buttons above to test query performance...
+                </div>
+            </div>
+        </section>
+
+        <!-- Execution Plans -->
+        <section class="card">
+            <h2>📋 Execution Plans</h2>
+            <p>Analisis execution plan untuk query yang sering digunakan</p>
+            
+            <div style="margin: 15px 0;">
+                <button class="btn btn-primary" onclick="showProductSearchPlan()">🔍 Product Search Plan</button>
+            </div>
+            
+            <div id="executionPlans">
+                <div class="query-result">
+                    Execution plans will appear here...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ========================
+        // ✅ PROTECTED ROUTE
+        // ========================
+        if (!localStorage.getItem("admin")) {
+            window.location.href = "login.html";
+        }
+
+        document.getElementById("logoutBtn").onclick = () => {
+            localStorage.removeItem("admin");
+            window.location.href = "login.html";
+        };
+
+        // ========================
+        // ✅ LOAD PERFORMANCE STATS
+        // ========================
+        async function loadPerformanceStats() {
+            try {
+                const response = await fetch("http://localhost:3001/api/performance/stats");
+                const data = await response.json();
+                
+                document.getElementById('totalIndexes').textContent = data.totalIndexes || 0;
+                document.getElementById('activeIndexes').textContent = data.activeIndexes || 0;
+                document.getElementById('tableCount').textContent = data.tableCount || 0;
+                document.getElementById('querySpeed').textContent = data.avgQuerySpeed || '0ms';
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // ========================
+        // ✅ LOAD INDEXES
+        // ========================
+        async function loadIndexes() {
+            try {
+                const response = await fetch("http://localhost:3001/api/performance/indexes");
+                const data = await response.json();
+                
+                const grid = document.getElementById('indexesGrid');
+                
+                if (data.indexes && data.indexes.length > 0) {
+                    grid.innerHTML = data.indexes.map(index => `
+                        <div class="index-card">
+                            <strong>${index.index_name}</strong>
+                            <div style="font-size: 0.85rem; color: #666; margin: 5px 0;">
+                                Table: ${index.table_name}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #888;">
+                                Type: ${index.uniqueness}
+                            </div>
+                            <span class="index-status status-${index.status === 'VALID' ? 'active' : 'inactive'}">
+                                ${index.status || 'UNKNOWN'}
+                            </span>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = '<div class="empty">No indexes found</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading indexes:', error);
+                document.getElementById('indexesGrid').innerHTML = '<div class="error">Failed to load indexes</div>';
+            }
+        }
+
+        // ========================
+        // ✅ ANALYZE INDEX USAGE
+        // ========================
+        async function analyzeAllIndexes() {
+            try {
+                const response = await fetch("http://localhost:3001/api/performance/analyze");
+                const data = await response.json();
+                
+                document.getElementById('queryResults').innerHTML = `
+                    <div class="query-result">
+                        <strong>📊 Index Analysis Results:</strong><br><br>
+                        ${data.analysis ? data.analysis.map(item => 
+                            `• ${item.index_name}: ${item.usage || 'No usage data'}<br>`
+                        ).join('') : 'No analysis data available'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error analyzing indexes:', error);
+            }
+        }
+
+        // ========================
+        // ✅ QUERY PERFORMANCE TESTS
+        // ========================
+        async function testProductSearch() {
+            const startTime = performance.now();
+            
+            try {
+                const response = await fetch("http://localhost:3001/api/products");
+                await response.json();
+                
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(2);
+                
+                document.getElementById('queryResults').innerHTML = `
+                    <div class="query-result">
+                        <strong>🔎 Product Search Test:</strong><br><br>
+                        Query: SELECT * FROM products<br>
+                        Execution Time: <strong>${duration} ms</strong><br>
+                        Status: ✅ Success<br>
+                        Note: This query uses indexes on product_name and price
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error testing product search:', error);
+            }
+        }
+
+        async function testCustomerQuery() {
+            const startTime = performance.now();
+            
+            try {
+                const response = await fetch("http://localhost:3001/api/customers");
+                await response.json();
+                
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(2);
+                
+                document.getElementById('queryResults').innerHTML = `
+                    <div class="query-result">
+                        <strong>👥 Customer Query Test:</strong><br><br>
+                        Query: SELECT * FROM customers<br>
+                        Execution Time: <strong>${duration} ms</strong><br>
+                        Status: ✅ Success<br>
+                        Note: Uses indexes on customer_name and email
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error testing customer query:', error);
+            }
+        }
+
+        async function testOrderQuery() {
+            const startTime = performance.now();
+            
+            try {
+                const response = await fetch("http://localhost:3001/api/orders");
+                await response.json();
+                
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(2);
+                
+                document.getElementById('queryResults').innerHTML = `
+                    <div class="query-result">
+                        <strong>📦 Order Query Test:</strong><br><br>
+                        Query: SELECT * FROM orders with joins<br>
+                        Execution Time: <strong>${duration} ms</strong><br>
+                        Status: ✅ Success<br>
+                        Note: Uses indexes on order_date and customer_id
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error testing order query:', error);
+            }
+        }
+
+        // ========================
+        // ✅ EXECUTION PLANS
+        // ========================
+        async function showProductSearchPlan() {
+            try {
+                const response = await fetch("http://localhost:3001/api/performance/explain/product-search");
+                const data = await response.json();
+                
+                document.getElementById('executionPlans').innerHTML = `
+                    <div class="query-result">
+                        <strong>🔍 Product Search Execution Plan:</strong><br><br>
+                        ${data.plan ? data.plan.join('<br>') : 'No plan available'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error showing execution plan:', error);
+            }
+        }
+
+        // ========================
+        // ✅ INITIALIZE
+        // ========================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPerformanceStats();
+            loadIndexes();
+        });
+    </script>
+</body>
+</html>

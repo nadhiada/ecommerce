@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ShopEase - Customer Transaction Summary</title>
+    <style>
+        body { 
+            margin:0; 
+            background:#f3f4f7; 
+            font-family:"Segoe UI",sans-serif; 
+        }
+
+        /* NAVBAR */
+        .navbar { 
+            background:#fff; 
+            padding:18px 40px; 
+            display:flex; 
+            justify-content:space-between; 
+            align-items:center; 
+            box-shadow:0 3px 10px rgba(0,0,0,.06); 
+            position:sticky; 
+            top:0; 
+            z-index:10; 
+        }
+        .nav-logo { font-size:1.7rem; font-weight:700; color:#4f46e5; }
+        .nav-links a { margin-left:20px; text-decoration:none; color:#444; font-size:1.05rem; }
+
+        /* MAIN */
+        .main { 
+            max-width:1400px; 
+            margin:40px auto; 
+            padding:0 24px; 
+        }
+        .page-header h1 { font-size:2.2rem; margin:0; }
+        .page-header p { color:#666; margin-top:6px; }
+
+        /* ===== SUMMARY CARD GRID ===== */
+        .stats-grid { 
+            margin-top:22px; 
+            display:grid; 
+            grid-template-columns:repeat(4, 1fr); 
+            gap:20px; 
+        }
+        .summary-card { 
+            background:#fff; 
+            padding:20px; 
+            border-radius:16px; 
+            box-shadow:0 8px 18px rgba(0,0,0,.06); 
+            transition:.2s ease; 
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+        }
+        .summary-card:hover { 
+            transform:translateY(-3px); 
+        }
+        .summary-card h3 { margin:0; color:#666; font-weight:600; font-size:.95rem; }
+        .summary-card h1 { margin:10px 0 0; font-size:2rem; color:#4f46e5; font-weight:700; }
+
+        /* ===== FILTERS ===== */
+        .filters {
+            background:white;
+            padding:22px;
+            border-radius:16px;
+            box-shadow:0 8px 18px rgba(0,0,0,.06);
+            margin:30px 0;
+            display:flex;
+            align-items:flex-end;
+            gap:20px;
+            flex-wrap:wrap;
+        }
+        .filter-group {
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+        .filter-group label {
+            font-size:.9rem;
+            font-weight:600;
+            color:#555;
+        }
+        .filter-group select, 
+        .filter-group input {
+            padding:10px 12px;
+            border-radius:8px;
+            border:1px solid #d1d5db;
+            font-size:.9rem;
+        }
+
+        /* BUTTONS */
+        .btn { 
+            padding:10px 16px; 
+            border:none; 
+            border-radius:8px; 
+            cursor:pointer; 
+            font-weight:600;
+            font-size:.9rem;
+            transition:.2s ease;
+        }
+        .btn-primary { background:#4f46e5; color:white; }
+        .btn-primary:hover { background:#4338ca; }
+        .btn-ghost { background:white; border:1px solid #cbd5e1; color:#4f46e5; }
+        .btn-ghost:hover { background:#f1f5f9; }
+
+        /* ===== CUSTOMER CARD ===== */
+        .customer-card {
+            background:#fff;
+            padding:25px;
+            border-radius:16px;
+            box-shadow:0 8px 18px rgba(0,0,0,.06);
+            margin-top:25px;
+        }
+        .customer-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+        }
+        .customer-header h2 {
+            margin:0;
+            font-size:1.4rem;
+            color:#333;
+        }
+
+        /* ===== TABLE ===== */
+        .customers-table {
+            width:100%;
+            border-collapse:collapse;
+            margin-top:10px;
+            background:white;
+        }
+        .customers-table th {
+            background:#eef0ff;
+            padding:14px;
+            font-size:.9rem;
+            text-align:left;
+            font-weight:700;
+            color:#374151;
+        }
+        .customers-table td {
+            padding:14px;
+            border-bottom:1px solid #e5e7eb;
+            font-size:.9rem;
+        }
+        .customers-table tr:hover {
+            background:#f8fafc;
+        }
+
+        /* METRICS */
+        .metric { font-weight:600; }
+        .metric.positive { color:#059669; }
+
+        /* STATUS BADGE */
+        .status-badge {
+            padding:6px 12px;
+            border-radius:20px;
+            font-size:.75rem;
+            font-weight:600;
+        }
+        .status-active { background:#d1fae5; color:#065f46; }
+        .status-inactive { background:#fef3c7; color:#92400e; }
+
+        /* EMPTY / ERROR / LOADING */
+        .loading, .empty, .error {
+            text-align:center;
+            padding:35px;
+            font-size:1rem;
+        }
+        .error { 
+            color:#dc2626;
+            background:#fef2f2;
+            border-radius:12px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width:1000px) {
+            .stats-grid { grid-template-columns:repeat(2, 1fr); }
+        }
+        @media (max-width:700px) {
+            .stats-grid { grid-template-columns:1fr; }
+            .filters { flex-direction:column; align-items:flex-start; }
+            .customer-header { flex-direction:column; align-items:flex-start; gap:10px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ✅ NAVBAR SAMA PERSIS DENGAN DASHBOARD -->
+    <header class="navbar">
+        <div class="nav-logo">🛍️ ShopEase Admin</div>
+        <nav class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="produk.html">Products</a>
+            <a href="laporan.html">Laporan</a>
+            <a href="customer-summary.html" style="color:#4f46e5;font-weight:bold;">Customer Analytics</a>
+            <a href="performance.html">Performance</a>
+            <a href="index.html" id="logoutBtn">Logout</a>
+        </nav>
+    </header>
+
+    <main class="main">
+        <section class="page-header">
+            <h1>Customer Transaction Analytics</h1>
+            <p>Analisis lengkap data pelanggan dan riwayat transaksi</p>
+        </section>
+
+        <!-- Statistics -->
+        <section class="stats-grid" id="statsGrid">
+            <div class="summary-card">
+                <h3>Total Customers</h3>
+                <h1 id="totalCustomers">0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Total Revenue</h3>
+                <h1 id="totalRevenue">Rp 0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Avg Order Value</h3>
+                <h1 id="avgOrderValue">Rp 0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Active Customers</h3>
+                <h1 id="activeCustomers">0</h1>
+            </div>
+        </section>
+
+        <!-- Filters -->
+        <section class="filters">
+            <div class="filter-group">
+                <label for="sortBy">Sort By</label>
+                <select id="sortBy" onchange="filterCustomers()">
+                    <option value="total_spent">Total Spent (Highest)</option>
+                    <option value="total_orders">Most Orders</option>
+                    <option value="last_order_date">Recent Activity</option>
+                    <option value="customer_name">Name A-Z</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="minOrders">Min Orders</label>
+                <select id="minOrders" onchange="filterCustomers()">
+                    <option value="0">All Customers</option>
+                    <option value="1">At least 1 order</option>
+                    <option value="3">3+ orders</option>
+                    <option value="5">5+ orders</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search">Search</label>
+                <input type="text" id="search" placeholder="Search customers..." onkeyup="filterCustomers()">
+            </div>
+            <div style="flex: 1;"></div>
+            <button class="btn btn-primary" onclick="loadCustomerSummary()">
+                Refresh
+            </button>
+            <button class="btn btn-ghost" onclick="exportToCSV()">
+                Export CSV
+            </button>
+        </section>
+
+        <!-- Customers Table -->
+        <section class="customer-card">
+            <div class="customer-header">
+                <h2>Customer Transaction Summary</h2>
+                <div>
+                    <button class="btn btn-ghost" onclick="loadCustomerSummary()">Refresh</button>
+                </div>
+            </div>
+
+            <table class="customers-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Contact</th>
+                        <th>Total Orders</th>
+                        <th>Total Spent</th>
+                        <th>Avg Order</th>
+                        <th>Last Order</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    <tr>
+                        <td colspan="7" class="loading">
+                            Loading customer data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // ========================
+        // ✅ PROTECTED ROUTE
+        // ========================
+        if (!localStorage.getItem("admin")) {
+            window.location.href = "login.html";
+        }
+
+        document.getElementById("logoutBtn").onclick = () => {
+            localStorage.removeItem("admin");
+            window.location.href = "login.html";
+        };
+
+        // ========================
+        // ✅ GLOBAL VARIABLES
+        // ========================
+        let allCustomers = [];
+
+        // ========================
+        // ✅ LOAD CUSTOMER SUMMARY
+        // ========================
+        async function loadCustomerSummary() {
+            try {
+                showLoading();
+                
+                const response = await fetch("http://localhost:3001/api/customer-summary");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to fetch data');
+                }
+
+                allCustomers = result.data || [];
+                displayCustomers(allCustomers);
+                updateStatistics(allCustomers);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to load customer data: ' + error.message);
+            }
+        }
+
+        // ========================
+        // ✅ DISPLAY CUSTOMERS
+        // ========================
+        function displayCustomers(customers) {
+            const tbody = document.getElementById('customersTableBody');
+            
+            if (customers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty">
+                            No customer data available for the selected filters
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = customers.map(customer => `
+                <tr>
+                    <td>
+                        <div style="font-weight:600;">${customer.customer_name}</div>
+                        <div style="font-size:0.8rem; color:#64748b;">${customer.customer_id}</div>
+                    </td>
+                    <td>
+                        <div style="font-size:0.85rem;">${customer.email || 'No email'}</div>
+                        <div style="font-size:0.85rem; color:#666;">${customer.phone || 'No phone'}</div>
+                    </td>
+                    <td>
+                        <div class="metric">${customer.total_orders}</div>
+                    </td>
+                    <td>
+                        <div class="metric positive">Rp ${customer.total_spent.toLocaleString('id-ID')}</div>
+                    </td>
+                    <td>
+                        <div class="metric">Rp ${customer.average_order_value.toLocaleString('id-ID')}</div>
+                    </td>
+                    <td>
+                        <div>${customer.last_order_date || 'Never'}</div>
+                    </td>
+                    <td>
+                        <span class="status-badge ${customer.total_orders > 0 ? 'status-active' : 'status-inactive'}">
+                            ${customer.total_orders > 0 ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ========================
+        // ✅ UPDATE STATISTICS
+        // ========================
+        function updateStatistics(customers) {
+            const totalCustomers = customers.length;
+            const activeCustomers = customers.filter(c => c.total_orders > 0).length;
+            const totalRevenue = customers.reduce((sum, c) => sum + c.total_spent, 0);
+            const avgOrderValue = activeCustomers > 0 ? totalRevenue / activeCustomers : 0;
+
+            document.getElementById('totalCustomers').textContent = totalCustomers;
+            document.getElementById('activeCustomers').textContent = activeCustomers;
+            document.getElementById('totalRevenue').textContent = 'Rp ' + totalRevenue.toLocaleString('id-ID');
+            document.getElementById('avgOrderValue').textContent = 'Rp ' + avgOrderValue.toLocaleString('id-ID');
+        }
+
+        // ========================
+        // ✅ FILTER CUSTOMERS
+        // ========================
+        function filterCustomers() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const minOrders = parseInt(document.getElementById('minOrders').value);
+            const sortBy = document.getElementById('sortBy').value;
+
+            let filtered = allCustomers.filter(customer => 
+                customer.customer_name.toLowerCase().includes(searchTerm) ||
+                customer.email?.toLowerCase().includes(searchTerm) ||
+                customer.customer_id.toLowerCase().includes(searchTerm)
+            );
+
+            filtered = filtered.filter(customer => customer.total_orders >= minOrders);
+
+            // Sort
+            filtered.sort((a, b) => {
+                switch(sortBy) {
+                    case 'total_spent':
+                        return b.total_spent - a.total_spent;
+                    case 'total_orders':
+                        return b.total_orders - a.total_orders;
+                    case 'last_order_date':
+                        return new Date(b.last_order_date || 0) - new Date(a.last_order_date || 0);
+                    case 'customer_name':
+                        return a.customer_name.localeCompare(b.customer_name);
+                    default:
+                        return 0;
+                }
+            });
+
+            displayCustomers(filtered);
+            updateStatistics(filtered);
+        }
+
+        // ========================
+        // ✅ EXPORT TO CSV
+        // ========================
+        function exportToCSV() {
+            const customers = allCustomers;
+            if (customers.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Customer ID', 'Name', 'Email', 'Phone', 'Total Orders', 'Total Spent', 'Avg Order Value', 'Last Order'];
+            const csvData = [
+                headers.join(','),
+                ...customers.map(c => [
+                    c.customer_id,
+                    `"${c.customer_name}"`,
+                    `"${c.email || ''}"`,
+                    `"${c.phone || ''}"`,
+                    c.total_orders,
+                    c.total_spent,
+                    c.average_order_value,
+                    c.last_order_date || ''
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `customer-summary-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // ========================
+        // ✅ UI HELPERS
+        // ========================
+        function showLoading() {
+            document.getElementById('customersTableBody').innerHTML = `
+                <tr>
+                    <td colspan="7" class="loading">
+                        Loading customer data...
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('customersTableBody').innerHTML = `
+                <tr>
+                    <td colspan="7" class="error">
+                        ❌ ${message}
+                        <br><br>
+                        <button class="btn btn-ghost" onclick="loadCustomerSummary()">
+                            Try Again
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // ========================
+        // ✅ INITIALIZE
+        // ========================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCustomerSummary();
+        });
+    </script>
+</body>
+</html>

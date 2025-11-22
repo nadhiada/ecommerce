@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Laporan Penjualan Bulanan - ShopEase</title>
+<style>
+body { margin:0; background:#f3f4f7; font-family:"Segoe UI",sans-serif; }
+.navbar { background:#fff; padding:18px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,.06); position:sticky; top:0; z-index:10; }
+.nav-logo { font-size:1.7rem; font-weight:700; color:#4f46e5; }
+.nav-links a { margin-left:20px; text-decoration:none; color:#444; font-size:1.05rem; }
+.main { max-width:1400px; margin:40px auto; padding:0 24px; }
+.page-header h1 { font-size:2.2rem; margin:0; }
+.page-header p { color:#666; margin-top:6px; }
+h1 { color:#4f46e5; }
+
+.table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 3px 10px rgba(0,0,0,.08); }
+th,td { padding:12px 15px; border-bottom:1px solid #eee; text-align:left; }
+th { background:#eef0ff; color:#333; }
+tr:hover { background:#f5f5ff; }
+
+input,button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; margin-right:10px; }
+button { background:#4f46e5; color:#fff; border:none; cursor:pointer; }
+button:hover { background:#3730a3; }
+
+.highlight { background:#e0e7ff !important; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #4f46e5;
+  color: white;
+  padding: 14px 22px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.2);
+  opacity: 0;
+  transition: opacity 0.4s, transform 0.4s;
+  transform: translateY(-20px);
+  z-index: 100;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Delete button */
+.btn-delete {
+  background:#dc2626;
+  color:#fff;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.btn-delete:hover {
+  background:#b91c1c;
+}
+</style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="nav-logo">🛍️ ShopEase Admin</div>
+  <nav class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="produk.html">Products</a>
+    <a href="laporan.html" class="active" style="color:#4f46e5;font-weight:bold;">Laporan</a>
+    <a href="customer-summary.html">Customer Analytics</a>
+    <a href="performance.html">Performance</a>
+    <a href="index.html" id="logoutBtn">Logout</a>
+  </nav>
+</header>
+
+<main class="main">
+<h1>📊 Laporan Penjualan Bulanan</h1>
+
+<div style="margin:20px 0;">
+  <input type="number" id="year" placeholder="Tahun (2025)">
+  <input type="number" id="month" placeholder="Bulan (1-12)">
+  <button onclick="generateReport()">🔄 Generate Laporan</button>
+  <button onclick="loadReports()">📄 Muat Laporan</button>
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID Laporan</th>
+      <th>Bulan</th>
+      <th>Tahun</th>
+      <th>Total Penjualan (Rp)</th>
+      <th>Tanggal Dibuat</th>
+      <th>Aksi</th> <!-- NEW -->
+    </tr>
+  </thead>
+  <tbody id="reportBody">
+    <tr><td colspan="6" style="text-align:center;padding:25px;">Memuat laporan...</td></tr>
+  </tbody>
+</table>
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast">Laporan berhasil dibuat</div>
+
+<script>
+/* Proteksi login */
+if (!localStorage.getItem("admin")) {
+  window.location.href = "login.html";
+}
+document.getElementById("logoutBtn").onclick = () => {
+  localStorage.removeItem("admin");
+  window.location.href = "login.html";
+};
+
+/* Toast */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+/* Load reports */
+async function loadReports() {
+  const res = await fetch("http://localhost:3001/api/reports");
+  const data = await res.json();
+  const body = document.getElementById("reportBody");
+
+  if (!data.length) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;">Belum ada laporan</td></tr>`;
+    return;
+  }
+
+  const newest = data[0].REPORT_ID;
+
+  body.innerHTML = data.map(r => `
+    <tr class="${r.REPORT_ID === newest ? 'highlight' : ''}">
+      <td>${r.REPORT_ID}</td>
+      <td>${r.MONTH}</td>
+      <td>${r.YEAR}</td>
+      <td>Rp ${parseInt(r.TOTAL_SALES).toLocaleString("id-ID")}</td>
+      <td>${new Date(r.CREATED_AT).toLocaleString("id-ID")}</td>
+      <td>
+        <button class="btn-delete" onclick="deleteReport('${r.REPORT_ID}')">Hapus</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* Generate report */
+async function generateReport() {
+  const year = document.getElementById("year").value;
+  const month = document.getElementById("month").value;
+
+  if (!year || !month) return alert("Isi tahun dan bulan dulu!");
+
+  const res = await fetch("http://localhost:3001/api/reports/generate", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({year: parseInt(year), month: parseInt(month)})
+  });
+
+  const result = await res.json();
+  showToast(result.message || "Laporan berhasil dibuat!");
+  loadReports();
+}
+
+/* DELETE report */
+async function deleteReport(id) {
+  if (!confirm("Yakin ingin menghapus laporan ini?")) return;
+
+  const res = await fetch(`http://localhost:3001/api/reports/${id}`, {
+    method: "DELETE"
+  });
+
+  const data = await res.json();
+  showToast(data.message || "Laporan berhasil dihapus!");
+  loadReports();
+}
+
+/* Auto-fill tanggal sekarang */
+const now = new Date();
+document.getElementById("year").value = now.getFullYear();
+document.getElementById("month").value = now.getMonth() + 1;
+
+loadReports();
+</script>
+
+</body>
+</html>

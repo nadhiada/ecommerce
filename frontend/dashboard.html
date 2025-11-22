@@ -1,0 +1,785 @@
+<!-- Part 1 -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ShopEase Admin Dashboard</title>
+    <style>
+        body { margin:0; background:#f3f4f7; font-family:"Segoe UI",sans-serif; }
+        .navbar { background:#fff; padding:18px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,.06); position:sticky; top:0; z-index:10; }
+        .nav-logo { font-size:1.7rem; font-weight:700; color:#4f46e5; }
+        .nav-links a { margin-left:20px; text-decoration:none; color:#444; font-size:1.05rem; }
+        .main { max-width:1400px; margin:40px auto; padding:0 24px; }
+        .page-header h1 { font-size:2.2rem; margin:0; }
+        .page-header p { color:#666; margin-top:6px; }
+
+        .summary-grid { margin-top:22px; display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+        .summary-card { background:#fff; padding:18px; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.06); }
+        .summary-card h3 { margin:0; color:#666; font-weight:600; }
+        .summary-card h1 { margin:8px 0 0; font-size:1.8rem; color:#4f46e5; }
+
+        /* Customer Card Styles */
+        .customer-card, .orders-card {
+            background:#fff;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 6px 16px rgba(0,0,0,.06);
+            margin-top:30px;
+        }
+        .customer-header, .orders-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:15px;
+        }
+        .customer-header h2, .orders-header h2 { margin:0; color:#333; }
+        .customer-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+            gap:15px;
+            margin-top:15px;
+        }
+        .customer-item {
+            background:#f8f9fa;
+            padding:15px;
+            border-radius:8px;
+            border-left:4px solid #4f46e5;
+        }
+        .customer-id {
+            font-weight:bold;
+            color:#4f46e5;
+            font-size:0.9rem;
+            margin-bottom:5px;
+        }
+        .customer-name {
+            font-size:1.1rem;
+            font-weight:600;
+            margin-bottom:8px;
+            color:#333;
+        }
+        .customer-contact {
+            font-size:0.85rem;
+            color:#666;
+            margin-bottom:3px;
+        }
+        .customer-date {
+            font-size:0.8rem;
+            color:#999;
+            margin-top:8px;
+        }
+        .customer-actions, .order-actions {
+            display:flex;
+            gap:8px;
+            margin-top:12px;
+        }
+        .btn {
+            padding:8px 16px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-weight:500;
+            font-size:0.85rem;
+        }
+        .btn-edit { background:#4f46e5; color:white; }
+        .btn-delete { background:#dc2626; color:white; }
+        .btn-primary { background:#4f46e5; color:#fff; }
+        .btn-ghost { background:transparent; color:#4f46e5; border:1px solid #e5e7eb; }
+        .btn-status { background:#f59e0b; color:white; }
+        .no-customers, .no-orders {
+            text-align:center;
+            padding:40px;
+            color:#777;
+            font-size:1.05rem;
+            grid-column:1/-1;
+        }
+
+        .orders-table { width:100%; border-collapse:collapse; margin-top:14px; }
+        .orders-table th { background:#eef0ff; padding:12px; text-align:left; }
+        .orders-table td { padding:12px; border-bottom:1px solid #eee; vertical-align:middle; }
+        .empty { text-align:center; padding:18px; color:#777; font-size:1.05rem; }
+
+        .status-badge {
+            padding:4px 12px;
+            border-radius:20px;
+            font-size:0.8rem;
+            font-weight:500;
+            text-transform:capitalize;
+        }
+        .status-pending { background:#fef3c7; color:#d97706; }
+        .status-completed { background:#d1fae5; color:#065f46; }
+        .status-cancelled { background:#fee2e2; color:#dc2626; }
+        .status-processing { background:#dbeafe; color:#1d4ed8; }
+
+        /* ✅ MODAL STYLES */
+        .modal {
+            display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.45);
+            align-items:center;
+            justify-content:center;
+            z-index:30;
+        }
+        .modal-content {
+            background:#fff;
+            width:500px;
+            max-width:90%;
+            max-height:90vh;
+            overflow-y:auto;
+            border-radius:12px;
+            padding:25px;
+            box-shadow:0 10px 30px rgba(0,0,0,.25);
+        }
+        .modal-content h2 { margin:0 0 20px 0; color:#333; }
+        .modal-content label {
+            display:block;
+            margin-bottom:8px;
+            color:#555;
+            font-weight:500;
+        }
+        .modal-content input, .modal-content select {
+            width:100%;
+            padding:10px;
+            margin-bottom:15px;
+            border-radius:8px;
+            border:1px solid #ccc;
+            box-sizing:border-box;
+        }
+        .modal-actions {
+            display:flex;
+            gap:10px;
+            margin-top:20px;
+        }
+
+        .item-row {
+            display:flex;
+            gap:10px;
+            margin-bottom:10px;
+            align-items:center;
+        }
+        .item-row select, .item-row input { margin-bottom:0; }
+        .remove-item {
+            background:#dc2626;
+            color:white;
+            border:none;
+            border-radius:6px;
+            padding:8px 12px;
+            cursor:pointer;
+        }
+        .add-item {
+            background:#10b981;
+            color:white;
+            border:none;
+            border-radius:6px;
+            padding:8px 12px;
+            cursor:pointer;
+            margin-bottom:15px;
+        }
+
+        @media (max-width:900px) {
+            .summary-grid { grid-template-columns:repeat(2,1fr); }
+            .customer-grid { grid-template-columns:1fr; }
+            .orders-table { display:block; overflow-x:auto; }
+        }
+        @media (max-width:600px) {
+            .summary-grid { grid-template-columns:1fr; }
+            .customer-header, .orders-header { flex-direction:column; align-items:flex-start; gap:10px; }
+            .modal-actions { flex-direction:column; }
+            .item-row { flex-direction:column; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-logo">🛍️ ShopEase Admin</div>
+        <nav class="nav-links">
+            <a href="dashboard.html" class="active" style="color:#4f46e5;font-weight:bold;">Dashboard</a>
+            <a href="produk.html">Products</a>
+            <a href="laporan.html">Laporan</a>
+            <a href="customer-summary.html">Customer Analytics</a>
+            <a href="performance.html">Performance</a>
+            <a href="index.html" id="logoutBtn">Logout</a>
+        </nav>
+    </header>
+
+    <main class="main">
+        <section class="page-header">
+            <h1>Dashboard Overview</h1>
+            <p>Monitor penjualan, pelanggan, dan performa toko kamu.</p>
+        </section>
+
+        <section class="summary-grid">
+            <div class="summary-card">
+                <h3>Total Orders</h3>
+                <h1 id="sumOrders">0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Total Revenue</h3>
+                <h1 id="sumRevenue">Rp 0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Customers</h3>
+                <h1 id="sumCustomers">0</h1>
+            </div>
+            <div class="summary-card">
+                <h3>Top Product</h3>
+                <h1 id="sumTopProduct">-</h1>
+            </div>
+        </section>
+
+        <!-- CUSTOMER CARD SECTION -->
+        <section class="customer-card">
+            <div class="customer-header">
+                <h2>Recent Customers</h2>
+                <div>
+                    <button class="btn btn-ghost" onclick="loadCustomers()">Refresh</button>
+                    <button class="btn btn-primary" onclick="openAddCustomerModal()">+ Tambah Customer</button>
+                </div>
+            </div>
+            <div class="customer-grid" id="customersGrid">
+                <div class="no-customers">Loading customers...</div>
+            </div>
+        </section>
+<!-- Part 2 -->
+        <!-- ORDERS CARD SECTION -->
+        <section class="orders-card">
+            <div class="orders-header">
+                <h2>Recent Orders</h2>
+                <div>
+                    <button class="btn btn-ghost" onclick="loadOrders()">Refresh</button>
+                    <button class="btn btn-primary" onclick="openAddOrderModal()">+ Tambah Order</button>
+                </div>
+            </div>
+
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>ID Order</th>
+                        <th>Pelanggan</th>
+                        <th>Produk</th>
+                        <th>Total (Rp)</th>
+                        <th>Tanggal</th>
+                        <th>Metode Bayar</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                    <tr><td colspan="8" style="text-align:center;padding:40px;color:#777;">Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- ✅ CUSTOMER MODAL -->
+    <div class="modal" id="customerModal">
+        <div class="modal-content">
+            <h2 id="customerModalTitle">Tambah Customer</h2>
+
+            <input type="hidden" id="customerId">
+
+            <label>Nama Customer</label>
+            <input type="text" id="customerName" placeholder="Masukkan nama customer">
+
+            <label>Email</label>
+            <input type="email" id="customerEmail" placeholder="Masukkan email">
+
+            <label>Nomor Telepon</label>
+            <input type="text" id="customerPhone" placeholder="Masukkan nomor telepon">
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveCustomer()">Simpan</button>
+                <button class="btn btn-delete" onclick="closeCustomerModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ ORDER MODAL -->
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <h2 id="orderModalTitle">Tambah Order Baru</h2>
+
+            <input type="hidden" id="orderId">
+
+            <label>Pelanggan</label>
+            <select id="orderCustomerId">
+                <option value="">Pilih Pelanggan</option>
+            </select>
+
+            <label>Items Pesanan</label>
+            <div id="orderItems">
+                <div class="item-row">
+                    <select class="product-select" onchange="updatePrice(this)">
+                        <option value="">Pilih Produk</option>
+                    </select>
+                    <input type="number" class="quantity" placeholder="Qty" min="1" value="1" onchange="calculateTotal()">
+                    <input type="text" class="price" placeholder="Harga" readonly>
+                    <button type="button" class="remove-item" onclick="removeItem(this)">×</button>
+                </div>
+            </div>
+            <button type="button" class="add-item" onclick="addItem()">+ Tambah Item</button>
+
+            <div style="border-top:1px solid #eee;padding-top:15px;margin-top:15px;">
+                <label>Total Amount</label>
+                <input type="text" id="totalAmount" readonly style="font-weight:bold;color:#4f46e5;">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveOrder()">Simpan Order</button>
+                <button class="btn btn-delete" onclick="closeOrderModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ STATUS MODAL -->
+    <div class="modal" id="statusModal">
+        <div class="modal-content">
+            <h2>Update Status Order</h2>
+            <input type="hidden" id="statusOrderId">
+
+            <label>Status</label>
+            <select id="orderStatus">
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="updateStatus()">Update Status</button>
+                <button class="btn btn-delete" onclick="closeStatusModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+<!-- Part 3 -->
+<script>
+/* ========================
+   ✅ CONFIG
+   ======================== */
+const API_BASE = "http://localhost:3001/api"; // central base for all requests
+
+// ========================
+// ✅ PROTEKSI LOGIN
+// ========================
+if (!localStorage.getItem("admin")) {
+    window.location.href = "login.html";
+}
+document.getElementById("logoutBtn").onclick = () => {
+    localStorage.removeItem("admin");
+    window.location.href = "login.html";
+};
+
+// ========================
+// ✅ GLOBAL VARIABLES
+// ========================
+let customers = [];
+let products = [];
+
+// ========================
+// ✅ HELPERS
+// ========================
+function safeParseJSON(text) {
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+}
+
+async function fetchJsonSafe(url, options = {}) {
+    // wrapper that returns { ok, status, data, text }
+    const res = await fetch(url, options);
+    const text = await res.text();
+    const data = safeParseJSON(text);
+    return { ok: res.ok, status: res.status, data, text };
+}
+
+// Format date
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID');
+}
+
+/* ========================
+   CUSTOMERS
+   ======================== */
+async function loadCustomers() {
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/customers`);
+        const grid = document.getElementById("customersGrid");
+        if (!ok) {
+            console.error('Failed loading customers:', text);
+            grid.innerHTML = '<div class="no-customers">Error loading customers from database</div>';
+            return;
+        }
+        const customerList = Array.isArray(data) ? data : [];
+        if (customerList.length === 0) {
+            grid.innerHTML = '<div class="no-customers">Belum ada pelanggan terdaftar</div>';
+            document.getElementById("sumCustomers").textContent = 0;
+            return;
+        }
+        document.getElementById("sumCustomers").textContent = customerList.length;
+        const recentCustomers = customerList.slice(0,6);
+        grid.innerHTML = recentCustomers.map(customer => `
+            <div class="customer-item">
+                <div class="customer-id">${customer.CUSTOMER_ID}</div>
+                <div class="customer-name">${customer.NAME}</div>
+                ${customer.EMAIL ? `<div class="customer-contact">📧 ${customer.EMAIL}</div>` : ''}
+                ${customer.PHONE ? `<div class="customer-contact">📞 ${customer.PHONE}</div>` : ''}
+                <div class="customer-date">Bergabung: ${formatDate(customer.CREATED_AT)}</div>
+                <div class="customer-actions">
+                    <button class="btn btn-edit" onclick="editCustomer('${customer.CUSTOMER_ID}')">Edit</button>
+                    <button class="btn btn-delete" onclick="deleteCustomer('${customer.CUSTOMER_ID}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Error loading customers:', err);
+        document.getElementById("customersGrid").innerHTML = '<div class="no-customers">Error loading customers from database</div>';
+    }
+}
+
+function openAddCustomerModal() {
+    document.getElementById("customerModalTitle").textContent = "Tambah Customer";
+    document.getElementById("customerId").value = "";
+    document.getElementById("customerName").value = "";
+    document.getElementById("customerEmail").value = "";
+    document.getElementById("customerPhone").value = "";
+    document.getElementById("customerModal").style.display = "flex";
+}
+
+async function editCustomer(id) {
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/customers/${id}`);
+        if (!ok || !data) { alert('Gagal memuat data customer'); return; }
+        const customer = data;
+        document.getElementById("customerModalTitle").textContent = "Edit Customer";
+        document.getElementById("customerId").value = customer.CUSTOMER_ID;
+        document.getElementById("customerName").value = customer.NAME;
+        document.getElementById("customerEmail").value = customer.EMAIL || "";
+        document.getElementById("customerPhone").value = customer.PHONE || "";
+        document.getElementById("customerModal").style.display = "flex";
+    } catch (err) {
+        console.error('Error loading customer:', err);
+        alert('Gagal memuat data customer');
+    }
+}
+
+function closeCustomerModal() {
+    document.getElementById("customerModal").style.display = "none";
+}
+
+async function saveCustomer() {
+    const id = document.getElementById("customerId").value;
+    const name = document.getElementById("customerName").value.trim();
+    const email = document.getElementById("customerEmail").value.trim();
+    const phone = document.getElementById("customerPhone").value.trim();
+    if (!name) { alert("Nama customer harus diisi!"); return; }
+    const payload = { NAME: name, EMAIL: email, PHONE: phone };
+    try {
+        const url = id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`;
+        const method = id ? "PUT" : "POST";
+        const { ok, data, text } = await fetchJsonSafe(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!ok) {
+            const msg = (data && data.error) ? data.error : text;
+            alert('Gagal menyimpan customer: ' + (msg || 'Unknown error'));
+            return;
+        }
+        const resultMsg = (data && data.message) ? data.message : 'Customer berhasil disimpan!';
+        alert(resultMsg);
+        closeCustomerModal();
+        loadCustomers();
+    } catch (err) {
+        console.error('Error saving customer:', err);
+        alert('Gagal menyimpan customer ke database');
+    }
+}
+
+async function deleteCustomer(id) {
+    if (!confirm("Hapus customer ini dari database?")) return;
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/customers/${id}`, { method: "DELETE" });
+        if (!ok) {
+            const msg = (data && data.error) ? data.error : text;
+            alert('Gagal menghapus customer: ' + (msg || 'Unknown error'));
+            return;
+        }
+        alert((data && data.message) ? data.message : 'Customer berhasil dihapus!');
+        loadCustomers();
+    } catch (err) {
+        console.error('Error deleting customer:', err);
+        alert('Gagal menghapus customer dari database');
+    }
+}
+
+/* ========================
+   ORDERS
+   ======================== */
+async function loadOrders() {
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/orders`);
+        const tbody = document.getElementById("ordersBody");
+        if (!ok) {
+            console.error('Failed to fetch orders:', text);
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#dc2626;">Error loading orders from database</td></tr>';
+            return;
+        }
+        const orders = Array.isArray(data) ? data : [];
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#777;">Belum ada pesanan</td></tr>';
+            return;
+        }
+        const recentOrders = orders.slice(0,5);
+        tbody.innerHTML = recentOrders.map(order => `
+            <tr>
+                <td><strong>${order.ORDER_ID}</strong></td>
+                <td>${order.CUSTOMER_NAME || '-'}</td>
+                <td>${order.PRODUCTS || '-'}</td>
+                <td>Rp ${Number(order.TOTAL_AMOUNT || 0).toLocaleString('id-ID')}</td>
+                <td>${order.ORDER_DATE || '-'}</td>
+                <td><b>${order.PAYMENT_METHOD || 'COD'}</b></td>
+                <td>
+                    <span class="status-badge status-${(order.STATUS||'pending').toLowerCase()}">
+                        ${order.STATUS || 'Pending'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-status" onclick="editStatus('${order.ORDER_ID}', '${order.STATUS || 'Pending'}')">Edit Status</button>
+                    <button class="btn btn-delete" onclick="deleteOrder('${order.ORDER_ID}')">Hapus</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error('Error loading orders:', err);
+        document.getElementById("ordersBody").innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#dc2626;">Error loading orders from database</td></tr>';
+    }
+}
+
+async function loadOrderModalData() {
+    try {
+        const custRes = await fetchJsonSafe(`${API_BASE}/customers`);
+        if (custRes.ok && Array.isArray(custRes.data)) {
+            customers = custRes.data;
+            const customerSelect = document.getElementById('orderCustomerId');
+            customerSelect.innerHTML = '<option value="">Pilih Pelanggan</option>' +
+                customers.map(c => `<option value="${c.CUSTOMER_ID}">${c.NAME} (${c.CUSTOMER_ID})</option>`).join('');
+        }
+        const prodRes = await fetchJsonSafe(`${API_BASE}/products`);
+        if (prodRes.ok && Array.isArray(prodRes.data)) {
+            products = prodRes.data;
+            document.querySelectorAll('.product-select').forEach(select => {
+                select.innerHTML = '<option value="">Pilih Produk</option>' +
+                    products.filter(p => p.STOCK > 0).map(p =>
+                        `<option value="${p.PRODUCT_ID}" data-price="${p.PRICE}">${p.NAME} (Stock: ${p.STOCK}) - Rp ${Number(p.PRICE).toLocaleString('id-ID')}</option>`
+                    ).join('');
+            });
+        }
+    } catch (err) {
+        console.error('Error loading modal data:', err);
+    }
+}
+
+function openAddOrderModal() {
+    document.getElementById("orderModalTitle").textContent = "Tambah Order Baru";
+    document.getElementById("orderId").value = "";
+    document.getElementById("orderCustomerId").value = "";
+    document.getElementById("orderItems").innerHTML = `
+        <div class="item-row">
+            <select class="product-select" onchange="updatePrice(this)">
+                <option value="">Pilih Produk</option>
+            </select>
+            <input type="number" class="quantity" placeholder="Qty" min="1" value="1" onchange="calculateTotal()">
+            <input type="text" class="price" placeholder="Harga" readonly>
+            <button type="button" class="remove-item" onclick="removeItem(this)">×</button>
+        </div>
+    `;
+    document.getElementById("totalAmount").value = "Rp 0";
+    loadOrderModalData();
+    document.getElementById("orderModal").style.display = "flex";
+}
+
+function addItem() {
+    const itemsContainer = document.getElementById("orderItems");
+    const newItem = document.createElement("div");
+    newItem.className = "item-row";
+    newItem.innerHTML = `
+        <select class="product-select" onchange="updatePrice(this)">
+            <option value="">Pilih Produk</option>
+        </select>
+        <input type="number" class="quantity" placeholder="Qty" min="1" value="1" onchange="calculateTotal()">
+        <input type="text" class="price" placeholder="Harga" readonly>
+        <button type="button" class="remove-item" onclick="removeItem(this)">×</button>
+    `;
+    const select = newItem.querySelector('.product-select');
+    select.innerHTML = '<option value="">Pilih Produk</option>' +
+        products.filter(p => p.STOCK > 0).map(p =>
+            `<option value="${p.PRODUCT_ID}" data-price="${p.PRICE}">${p.NAME} (Stock: ${p.STOCK}) - Rp ${Number(p.PRICE).toLocaleString('id-ID')}</option>`
+        ).join('');
+    itemsContainer.appendChild(newItem);
+}
+
+function removeItem(button) {
+    const items = document.querySelectorAll('.item-row');
+    if (items.length > 1) {
+        button.closest('.item-row').remove();
+        calculateTotal();
+    }
+}
+
+function updatePrice(select) {
+    const option = select.selectedOptions[0];
+    const price = option ? option.getAttribute('data-price') : 0;
+    const row = select.closest('.item-row');
+    row.querySelector('.price').value = price ? `Rp ${Number(price).toLocaleString('id-ID')}` : '';
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let total = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const select = row.querySelector('.product-select');
+        const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+        const price = select.selectedOptions[0] ? parseInt(select.selectedOptions[0].getAttribute('data-price')) : 0;
+        total += quantity * price;
+    });
+    document.getElementById("totalAmount").value = `Rp ${total.toLocaleString('id-ID')}`;
+}
+
+async function saveOrder() {
+    const customerId = document.getElementById("orderCustomerId").value;
+    const items = [];
+    document.querySelectorAll('.item-row').forEach(row => {
+        const select = row.querySelector('.product-select');
+        const productId = select.value;
+        const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+        if (productId && quantity > 0) {
+            items.push({ PRODUCT_ID: productId, QUANTITY: quantity });
+        }
+    });
+    if (!customerId) { alert("Pilih pelanggan terlebih dahulu!"); return; }
+    if (items.length === 0) { alert("Tambahkan minimal satu item produk!"); return; }
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ CUSTOMER_ID: customerId, ITEMS: items })
+        });
+        if (!ok) {
+            const msg = (data && data.error) ? data.error : text;
+            alert('Gagal membuat order: ' + (msg || 'Unknown error'));
+            return;
+        }
+        alert((data && data.message) ? data.message : 'Order berhasil dibuat!');
+        closeOrderModal();
+        loadOrders();
+        loadDashboard();
+    } catch (err) {
+        console.error('Error saving order:', err);
+        alert('Gagal menyimpan order ke database');
+    }
+}
+
+/* ========================
+   STATUS (update)
+   ======================== */
+function editStatus(orderId, currentStatus) {
+    document.getElementById("statusOrderId").value = orderId;
+    document.getElementById("orderStatus").value = currentStatus;
+    document.getElementById("statusModal").style.display = "flex";
+}
+
+async function updateStatus() {
+    const orderId = document.getElementById("statusOrderId").value;
+    const status = document.getElementById("orderStatus").value.trim();
+    if (!orderId) { alert('Order ID tidak ditemukan'); return; }
+    try {
+        // NOTE: route on server is /api/orders/update-status/:orderId
+        const { ok, data, text, status: httpStatus } = await fetchJsonSafe(`${API_BASE}/orders/update-status/${encodeURIComponent(orderId)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: status })
+        });
+
+        if (!ok) {
+            // if server returned JSON with error -> show it, otherwise show text (maybe HTML)
+            const errMsg = (data && data.error) ? data.error : text || `HTTP ${httpStatus}`;
+            alert('Gagal update status: ' + errMsg);
+            console.error('Update status failed:', httpStatus, text);
+            return;
+        }
+
+        const successMsg = (data && (data.message || data.result || data.note)) ? (data.message || data.result || data.note) : 'Status berhasil diupdate!';
+        alert(successMsg);
+        closeStatusModal();
+        loadOrders();
+    } catch (err) {
+        console.error('Error updating status (network):', err);
+        alert('Gagal update status order (network error)');
+    }
+}
+
+async function deleteOrder(id) {
+    if (!confirm("Yakin ingin menghapus order ini?")) return;
+
+    try {
+        const { ok, data, text } = await fetchJsonSafe(`${API_BASE}/orders/delete/${id}`, {
+            method: "DELETE"
+        });
+
+        if (!ok) {
+            const msg = (data && data.error) ? data.error : text;
+            alert("Gagal menghapus order: " + (msg || "Unknown error"));
+            return;
+        }
+
+        alert((data && data.message) ? data.message : "Order berhasil dihapus!");
+        loadOrders();
+        loadDashboard(); // kalau kamu punya fungsi summary dashboard
+    } catch (err) {
+        console.error("Error deleting order:", err);
+        alert("Gagal menghapus order dari database");
+    }
+}
+
+/* ========================
+   CLOSE MODALS
+   ======================== */
+function closeOrderModal() { document.getElementById("orderModal").style.display = "none"; }
+function closeStatusModal() { document.getElementById("statusModal").style.display = "none"; }
+
+/* ========================
+   DASHBOARD DATA
+   ======================== */
+async function loadDashboard() {
+    try {
+        const { ok, data } = await fetchJsonSafe(`${API_BASE}/dashboard`);
+        if (ok && data) {
+            document.getElementById('sumOrders').textContent = data.totalOrders || "0";
+            document.getElementById('sumRevenue').textContent = "Rp " + (Number(data.totalRevenue || 0).toLocaleString('id-ID'));
+            document.getElementById('sumTopProduct').textContent = data.topProduct || "-";
+            return;
+        }
+    } catch (err) {
+        console.error('Error loading dashboard:', err);
+    }
+    // fallback
+    document.getElementById('sumOrders').textContent = "15";
+    document.getElementById('sumRevenue').textContent = "Rp 4.250.000";
+    document.getElementById('sumTopProduct').textContent = "Keyboard RGB";
+}
+
+/* ========================
+   INIT
+   ======================== */
+loadDashboard();
+loadCustomers();
+loadOrders();
+</script>
+</body>
+</html>
